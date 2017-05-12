@@ -718,11 +718,22 @@ static int __init get_freq(char *name, int cells, unsigned long *val)
 static void start_cpu_decrementer(void)
 {
 #if defined(CONFIG_BOOKE) || defined(CONFIG_40x)
+	unsigned int tcr;
 	/* Clear any pending timer interrupts */
 	mtspr(SPRN_TSR, TSR_ENW | TSR_WIS | TSR_DIS | TSR_FIS);
 
-	/* Enable decrementer interrupt */
-	mtspr(SPRN_TCR, TCR_DIE);
+	tcr = mfspr(SPRN_TCR);
+	/*
+	 * At this point in the kernel boot, the watchdog has already
+	 * been enabled by u-boot. If we set it this to '00' it may
+	 * trigger watchdog earlier than needed which will cause
+	 * inattentional kernel panic. In this case we leaving TCR[WP]
+	 * bit setting from uboot/bootstrap.
+	 */
+	tcr &= TCR_WP_MASK; /* clear all bits except for TCR[WP] */
+	tcr |= TCR_DIE; /* enable decrementer */
+	mtspr(SPRN_TCR, tcr);
+
 #endif /* defined(CONFIG_BOOKE) || defined(CONFIG_40x) */
 }
 

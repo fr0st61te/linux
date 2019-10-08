@@ -171,6 +171,11 @@ static int aspeed_sdhci_probe(struct platform_device *pdev)
 	dev_info(&pdev->dev, "Configuring for slot %d\n", slot);
 	dev->width_mask = !slot ? ASPEED_SDC_S0MMC8 : ASPEED_SDC_S1MMC8;
 
+	if (of_property_read_bool(pdev->dev.of_node, "aspeed,inv-presence")) {
+		host->quirks2 |= SDHCI_QUIRK2_INVERTED_CARD_DETECTION;
+		dev_info(&pdev->dev, "aspeed: signal presence inversion\n");
+	}
+
 	sdhci_get_of_property(pdev);
 
 	pltfm_host->clk = devm_clk_get(&pdev->dev, NULL);

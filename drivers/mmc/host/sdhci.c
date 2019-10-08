@@ -158,6 +158,8 @@ static void sdhci_set_card_detection(struct sdhci_host *host, bool enable)
 	if (enable) {
 		present = sdhci_readl(host, SDHCI_PRESENT_STATE) &
 				      SDHCI_CARD_PRESENT;
+		if (host->quirks2 & SDHCI_QUIRK2_INVERTED_CARD_DETECTION)
+			present = !present;
 
 		host->ier |= present ? SDHCI_INT_CARD_REMOVE :
 				       SDHCI_INT_CARD_INSERT;
@@ -2046,6 +2048,7 @@ static int sdhci_get_cd(struct mmc_host *mmc)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
 	int gpio_cd = mmc_gpio_get_cd(mmc);
+	int present;
 
 	if (host->flags & SDHCI_DEVICE_DEAD)
 		return 0;
@@ -2066,7 +2069,13 @@ static int sdhci_get_cd(struct mmc_host *mmc)
 		return 1;
 
 	/* Host native card detect */
-	return !!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_CARD_PRESENT);
+	present = sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_CARD_PRESENT;
+	if (host->quirks2 & SDHCI_QUIRK2_INVERTED_CARD_DETECTION)
+		present = !present;
+	else
+		present = !!present;
+
+	return present;
 }
 
 static int sdhci_check_ro(struct sdhci_host *host)
@@ -3076,6 +3085,8 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 		if (intmask & (SDHCI_INT_CARD_INSERT | SDHCI_INT_CARD_REMOVE)) {
 			u32 present = sdhci_readl(host, SDHCI_PRESENT_STATE) &
 				      SDHCI_CARD_PRESENT;
+			if (host->quirks2 & SDHCI_QUIRK2_INVERTED_CARD_DETECTION)
+				present = !present;
 
 			/*
 			 * There is a observation on i.mx esdhc.  INSERT

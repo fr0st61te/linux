@@ -37,6 +37,9 @@ properties:
   clocks:
     maxItems: 1
     description: The SD/SDIO controller clock gate
+  aspeed,inv-presence:
+    description: SDHCI_CARD_PRESENT bit is inverted on the controller
+    type: boolean
 
 patternProperties:
   "^sdhci@[0-9a-f]+$":
